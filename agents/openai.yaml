@@ -1,0 +1,7 @@
+interface:
+  display_name: "Traiding Agent"
+  short_description: "Alpaca research with guarded execution"
+  brand_color: "#0F766E"
+  default_prompt: "Use $traiding-agent to study this market idea and prepare a paper-trading plan with risk controls."
+policy:
+  allow_implicit_invocation: true
