@@ -33,15 +33,26 @@ class MarketSignal:
 
 
 class MovingAverageCrossoverStrategy:
-    """Generates a basic moving-average crossover signal."""
+    """Daily trend-following baseline with a small, fractional position size."""
 
-    def __init__(self, *, short_window: int = 20, long_window: int = 50) -> None:
+    def __init__(
+        self,
+        *,
+        short_window: int = 50,
+        long_window: int = 200,
+        allocation_pct: Decimal = Decimal("0.005"),
+        stop_pct: Decimal = Decimal("0.05"),
+    ) -> None:
         if short_window <= 1:
             raise ValueError("short_window must be greater than 1")
         if long_window <= short_window:
             raise ValueError("long_window must be greater than short_window")
+        if allocation_pct <= 0 or stop_pct <= 0 or stop_pct >= 1:
+            raise ValueError("allocation_pct and stop_pct must be positive; stop_pct must be below 1")
         self.short_window = short_window
         self.long_window = long_window
+        self.allocation_pct = allocation_pct
+        self.stop_pct = stop_pct
 
     def analyze(
         self,
@@ -66,7 +77,7 @@ class MovingAverageCrossoverStrategy:
         current_long = fmean(closes[-self.long_window :])
         latest_close = bars[-1].close
         risk = risk_config or RiskConfig()
-        notional = equity * risk.max_position_pct
+        notional = min(equity * self.allocation_pct, equity * risk.max_position_pct)
 
         if prev_short <= prev_long and current_short > current_long:
             return MarketSignal(
@@ -74,7 +85,7 @@ class MovingAverageCrossoverStrategy:
                 action="buy",
                 confidence=Decimal("0.55"),
                 rationale="short moving average crossed above long moving average",
-                invalidation_price=latest_close * Decimal("0.98"),
+                invalidation_price=latest_close * (Decimal("1") - self.stop_pct),
                 suggested_notional=notional,
             )
 

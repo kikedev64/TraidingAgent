@@ -31,8 +31,8 @@ def _decimal_from_env(name: str, default: str) -> Decimal:
 class AlpacaConfig:
     """Alpaca API settings.
 
-    `paper` defaults to True and live trading requires the separate `allow_live_trading`
-    guard to be true as well.
+    `paper` defaults to True. Live execution also requires the separate
+    `allow_live_trading` setting and a confirmed runtime session.
     """
 
     api_key: str
@@ -60,7 +60,7 @@ class AlpacaConfig:
         if not self.allow_live_trading:
             raise PermissionError("Live trading is disabled by TRAIDING_AGENT_ALLOW_LIVE")
         if not user_confirmed_live:
-            raise PermissionError("Live trading requires explicit user confirmation")
+            raise PermissionError("Live execution requires confirmation at startup")
 
 
 @dataclass(frozen=True)

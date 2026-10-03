@@ -86,6 +86,22 @@ class RiskManagerTests(unittest.TestCase):
 
         self.assertTrue(decision.approved)
 
+    def test_daily_loss_limit_does_not_block_a_position_close(self) -> None:
+        order = ProposedOrder(
+            symbol="SPY",
+            side="sell",
+            qty=Decimal("2"),
+            intent="close",
+            entry_price=Decimal("500"),
+        )
+        decision = RiskManager().evaluate_order(
+            order,
+            equity=Decimal("100000"),
+            day_realized_pnl=Decimal("-1000"),
+        )
+
+        self.assertTrue(decision.approved)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -27,8 +27,8 @@ Required for API-backed operations:
 
 Optional:
 
-- `ALPACA_PAPER`: defaults to `true`; set to `false` only for live trading.
-- `TRAIDING_AGENT_ALLOW_LIVE`: defaults to `false`; must be `true` as an additional live-trading guard.
+- `ALPACA_PAPER`: defaults to `true`; live accounts require `false`.
+- `TRAIDING_AGENT_ALLOW_LIVE`: defaults to `false`; must be `true` as a second live-mode guard.
 - `TRAIDING_AGENT_MAX_POSITION_PCT`: default `0.02`.
 - `TRAIDING_AGENT_MAX_TRADE_RISK_PCT`: default `0.005`.
 - `TRAIDING_AGENT_MAX_DAILY_LOSS_PCT`: default `0.01`.
@@ -36,11 +36,12 @@ Optional:
 
 ## Connector Expectations
 
-- Never instantiate a live client unless both `ALPACA_PAPER=false` and `TRAIDING_AGENT_ALLOW_LIVE=true` are intentionally set.
+- Keep paper mode as the default. The polled daemon is paper-only; live execution is available only in `stream` after the account flags and the terminal session confirmation are present.
 - Paper order submission can be automated after the risk manager approves the order.
-- Live order submission still requires explicit user approval in the current turn, even when environment variables allow it.
+- Live order submission requires both live environment flags and explicit terminal confirmation of the displayed session scope.
 - Use `client_order_id` for idempotency when submitting orders.
 - Prefer bracket or OTO orders when an entry needs attached exits. If the desired order class is not supported for the asset class, do not silently downgrade to an unprotected entry.
+- Request the IEX feed explicitly unless the configured account is verified to have SIP entitlement.
 - Surface Alpaca API exceptions to the caller with enough context to know whether the order was accepted, rejected, or unknown.
 
 ## Paper Trading Caveats

@@ -103,7 +103,7 @@ class RiskManager:
         elif estimated_notional < self.config.min_order_notional:
             reasons.append("estimated notional is below the minimum order notional")
 
-        if equity > 0 and day_realized_pnl < 0:
+        if order.intent == "open" and equity > 0 and day_realized_pnl < 0:
             daily_loss_pct = abs(day_realized_pnl) / equity
             if daily_loss_pct >= self.config.max_daily_loss_pct:
                 reasons.append("daily loss limit has already been reached")
@@ -114,7 +114,7 @@ class RiskManager:
             if self.config.require_stop_loss and order.stop_loss_price is None:
                 reasons.append("opening risk requires a stop_loss_price")
 
-        if estimated_notional is not None and equity > 0:
+        if order.intent == "open" and estimated_notional is not None and equity > 0:
             max_position_notional = equity * self.config.max_position_pct
             resulting_exposure = abs(current_symbol_exposure) + estimated_notional
             if resulting_exposure > max_position_notional:

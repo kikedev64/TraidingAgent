@@ -13,8 +13,8 @@ The skill's north star is capital preservation first, opportunity second. Never 
 
 ## Operating Rules
 
-- Default to paper trading. Live trading requires explicit user approval in the current conversation and must be blocked in code unless live trading is deliberately enabled.
-- Do not place, modify, or cancel live orders without restating the exact action, symbol, side, size, order type, account mode, and risk limits immediately before asking for authorization.
+- Default to Alpaca paper trading. Live automation is available only when the user supplies live keys locally, sets `ALPACA_PAPER=false` and `TRAIDING_AGENT_ALLOW_LIVE=true`, and confirms the displayed symbol, strategy, order sizing, and risk limits in the terminal at startup.
+- Never switch credentials or account mode on the user's behalf. Do not initiate a live session unless the user explicitly requests it and completes the terminal confirmation.
 - Keep credentials out of source files, prompts, logs, and generated reports. Use environment variables for Alpaca keys.
 - Prefer Alpaca's official `alpaca-py` SDK for Python integrations. Verify current SDK/API behavior before changing connector code or relying on a specific order feature.
 - Use structured request models and enums from the SDK instead of hand-built HTTP payload strings when available.
@@ -41,8 +41,8 @@ This repository includes a Python package under `src/traiding_agent`:
 - `alpaca_connector.py` wraps Alpaca clients and blocks unsafe execution paths.
 - `agent.py` combines strategy, risk, and connector primitives for planning workflows.
 
-The CLI helper `scripts/traiding_agent.py` can preview risk decisions locally without contacting Alpaca.
+The CLI `scripts/traiding_agent.py` can preview risk locally, check Alpaca connectivity, run a polled paper loop, stream live IEX trades and minute bars to a terminal dashboard, and show its SQLite audit log. Start with `check`; use `stream --monitor-only` to inspect the streaming dashboard without orders. The `stream` command defaults to paper execution after an approved signal; `--enable-live` requires live account settings and a typed startup confirmation.
 
 ## Hard Stops
 
-Stop and ask the user before proceeding if a request requires credentials, live trading authorization, a jurisdiction-specific legal/tax answer, or a risk setting that exceeds the current policy. If the user asks for guaranteed profit, reframe the work as research, paper trading, or risk-managed strategy development.
+Stop and ask the user before proceeding if a request requires a risk setting that exceeds the current policy or a jurisdiction-specific legal/tax answer. If the user asks for guaranteed profit, reframe the work as research, paper trading, or risk-managed strategy development.

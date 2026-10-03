@@ -7,6 +7,7 @@ without installed credentials or network access.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
 from uuid import uuid4
@@ -36,6 +37,7 @@ class AlpacaConnector:
         self.config = config
         self.risk_manager = RiskManager(risk_config)
         self._trading_client = trading_client
+        self._data_client: Any | None = None
 
     @classmethod
     def from_env(cls) -> "AlpacaConnector":
@@ -59,6 +61,92 @@ class AlpacaConnector:
 
     def get_all_positions(self) -> Any:
         return self.trading_client.get_all_positions()
+
+    def get_open_orders(self) -> Any:
+        from alpaca.trading.enums import QueryOrderStatus
+        from alpaca.trading.requests import GetOrdersRequest
+
+        return self.trading_client.get_orders(
+            filter=GetOrdersRequest(status=QueryOrderStatus.OPEN)
+        )
+
+    def get_clock(self) -> Any:
+        return self.trading_client.get_clock()
+
+    @property
+    def stock_stream(self) -> Any:
+        from alpaca.data.enums import DataFeed
+        from alpaca.data.live import StockDataStream
+
+        return StockDataStream(
+            self.config.api_key,
+            self.config.secret_key,
+            feed=DataFeed.IEX,
+        )
+
+    @property
+    def trading_stream(self) -> Any:
+        from alpaca.trading.stream import TradingStream
+
+        return TradingStream(
+            self.config.api_key,
+            self.config.secret_key,
+            paper=self.config.paper,
+        )
+
+    @property
+    def data_client(self) -> Any:
+        if self._data_client is None:
+            from alpaca.data.historical import StockHistoricalDataClient
+
+            self._data_client = StockHistoricalDataClient(
+                self.config.api_key,
+                self.config.secret_key,
+            )
+        return self._data_client
+
+    def get_stock_bars(
+        self,
+        symbols: list[str],
+        *,
+        timeframe: str,
+        limit: int,
+        end: datetime | None = None,
+    ) -> Any:
+        from alpaca.data.enums import DataFeed
+        from alpaca.data.requests import StockBarsRequest
+        from alpaca.data.timeframe import TimeFrame
+        from alpaca.common.enums import Sort
+
+        timeframes = {
+            "1Min": TimeFrame.Minute,
+            "5Min": TimeFrame(5, TimeFrame.Minute.unit),
+            "15Min": TimeFrame(15, TimeFrame.Minute.unit),
+            "1Hour": TimeFrame.Hour,
+            "1Day": TimeFrame.Day,
+        }
+        if timeframe not in timeframes:
+            raise ValueError(f"Unsupported timeframe: {timeframe}")
+        interval_seconds = {
+            "1Min": 60,
+            "5Min": 300,
+            "15Min": 900,
+            "1Hour": 3600,
+            "1Day": 86400,
+        }[timeframe]
+        request_end = end or datetime.now().astimezone()
+        lookback_multiplier = 3 if timeframe == "1Day" else 8
+        request = StockBarsRequest(
+            symbol_or_symbols=symbols,
+            timeframe=timeframes[timeframe],
+            limit=limit,
+            start=request_end
+            - timedelta(seconds=interval_seconds * max(limit, 1) * lookback_multiplier),
+            end=request_end,
+            feed=DataFeed.IEX,
+            sort=Sort.DESC,
+        )
+        return self.data_client.get_stock_bars(request)
 
     def preview_order(
         self,
